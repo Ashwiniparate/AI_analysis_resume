@@ -1,0 +1,36 @@
+.dashboard-container{
+
+    text-align:center;
+    padding:40px;
+
+}
+
+
+.dashboard-cards{
+
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    margin-top:40px;
+
+}
+
+
+.dashboard-card{
+
+    width:280px;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.2);
+
+}
+
+
+.dashboard-card button{
+
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+
+}
