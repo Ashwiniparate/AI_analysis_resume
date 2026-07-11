@@ -4,7 +4,7 @@ import axios from "axios";
 export const askGemini = async(prompt)=>{
 
 const response = await axios.post(
-"http://localhost:5000/api/ai/generate",
+"https://ai-resume-api-0x0a.onrender.com/api/ai/generate",
 {
 prompt:prompt
 }
@@ -19,7 +19,7 @@ return response.data.answer;
 export const getChatHistory = async()=>{
 
 const response = await axios.get(
-"http://localhost:5000/api/ai/history"
+"https://ai-resume-api-0x0a.onrender.com/api/ai/history"
 );
 
 

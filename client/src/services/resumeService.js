@@ -9,7 +9,7 @@ export const analyzeResume = async(file)=>{
 
 
     const response = await axios.post(
-        "http://localhost:5000/api/resume/analyze",
+        "https://ai-resume-api-0x0a.onrender.com/api/resume/analyze",
         formData,
         {
             headers:{

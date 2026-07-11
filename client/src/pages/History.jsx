@@ -15,7 +15,7 @@ const getHistory = async()=>{
     try{
 
         const response = await axios.get(
-            "http://localhost:5000/api/history"
+            "http://:5000/api/history"
         );
 
         setHistory(response.data);
@@ -89,7 +89,7 @@ const deleteHistory = async(id)=>{
 
 
         await axios.delete(
-            `http://localhost:5000/api/history/${id}`
+            `https://ai-resume-api-0x0a.onrender.com/api/history/${id}`
         );
 
 

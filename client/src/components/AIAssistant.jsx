@@ -160,7 +160,7 @@ function AIAssistant(){
         try{
 
             await axios.delete(
-                `http://localhost:5000/api/ai/history/${id}`
+                `https://ai-resume-api-0x0a.onrender.com/api/ai/history/${id}`
             );
 
 

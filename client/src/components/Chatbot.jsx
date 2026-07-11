@@ -17,7 +17,7 @@ function Chatbot(){
         try{
 
             const response = await axios.get(
-                "http://localhost:5000/api/ai/history"
+                "https://ai-resume-api-0x0a.onrender.com/api/ai/history"
             );
 
 
@@ -77,7 +77,7 @@ function Chatbot(){
 
             const response = await axios.post(
 
-                "http://localhost:5000/api/ai/generate",
+                "https://ai-resume-api-0x0a.onrender.com/api/ai/generate",
 
                 {
                     prompt:userText
