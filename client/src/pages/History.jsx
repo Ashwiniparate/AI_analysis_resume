@@ -3,225 +3,274 @@ import axios from "axios";
 import "./History.css";
 
 
-function History(){
+function History() {
 
 
-const [history,setHistory] = useState([]);
-
-
-
-const getHistory = async()=>{
-
-    try{
-
-        const response = await axios.get(
-            "http://:5000/api/history"
-        );
-
-        setHistory(response.data);
-
-    }
-    catch(error){
-
-        console.log(error);
-
-    }
-
-};
+    const [history, setHistory] = useState([]);
 
 
 
-useEffect(()=>{
+    // Get Resume History
+    const getHistory = async () => {
 
-    getHistory();
+        try {
 
-},[]);
-
-
-
-
-
+            const response = await axios.get(
+                "https://ai-resume-api-0x0a.onrender.com/api/history"
+            );
 
 
-const downloadAnalysis = (item)=>{
+            setHistory(response.data);
 
-    const file = new Blob(
-        [item.analysis],
-        {
-            type:"text/plain"
+
+        } catch (error) {
+
+            console.log("History Error:", error);
+
         }
-    );
+
+    };
 
 
-    const url = URL.createObjectURL(file);
 
+    useEffect(() => {
 
-    const link = document.createElement("a");
+        getHistory();
 
-    link.href = url;
-
-    link.download = item.fileName + "_Analysis.txt";
-
-
-    link.click();
-
-};
+    }, []);
 
 
 
 
 
+    // Download Analysis
+    const downloadAnalysis = (item) => {
 
 
-const deleteHistory = async(id)=>{
-
-
-    const confirmDelete = window.confirm(
-        "Are you sure you want to delete this history?"
-    );
-
-
-    if(!confirmDelete) return;
+        const analysisText =
+            item.analysisResult || item.analysis;
 
 
 
-    try{
+        const fileName =
+            item.resumeName || item.fileName;
 
 
-        await axios.delete(
-            `https://ai-resume-api-0x0a.onrender.com/api/history/${id}`
+
+        const file = new Blob(
+            [
+                analysisText
+            ],
+            {
+                type: "text/plain"
+            }
         );
 
 
 
-       
+        const url = URL.createObjectURL(file);
 
-        setHistory(
-            history.filter(
-                (item)=> item._id !== id
-            )
+
+
+        const link = document.createElement("a");
+
+
+        link.href = url;
+
+
+
+        link.download =
+            fileName + "_Analysis.txt";
+
+
+
+        link.click();
+
+
+
+        URL.revokeObjectURL(url);
+
+
+    };
+
+
+
+
+
+
+    // Delete History
+    const deleteHistory = async (id) => {
+
+
+        const confirmDelete = window.confirm(
+            "Are you sure you want to delete this history?"
         );
 
 
-    }
-    catch(error){
+        if (!confirmDelete) return;
 
-        console.log(error);
 
-    }
 
+        try {
 
-};
 
+            await axios.delete(
 
+                `https://ai-resume-api-0x0a.onrender.com/api/history/${id}`
 
+            );
 
 
 
-return(
+            setHistory(
 
+                history.filter(
+                    (item) => item._id !== id
+                )
 
-<div className="history-container">
+            );
 
 
-<h1>
-📄 Resume History
-</h1>
 
+        } catch (error) {
 
+            console.log("Delete Error:", error);
 
-{
+        }
 
-history.length===0 ?
 
-<h3>
-No History Found
-</h3>
+    };
 
 
-:
 
 
-history.map((item)=>(
 
 
 
-<div 
-className="history-card"
-key={item._id}
->
+    return (
 
+        <div className="history-container">
 
 
-<h2>
-📄 {item.fileName}
-</h2>
+            <h1>
+                📄 Resume History
+            </h1>
 
 
 
-<p>
+            {
+                history.length === 0 ?
 
-Date: {new Date(item.createdAt)
-.toLocaleString()}
 
-</p>
+                (
 
+                    <h3>
+                        No History Found
+                    </h3>
 
+                )
 
 
-<button
-onClick={()=>downloadAnalysis(item)}
->
+                :
 
-⬇ Download Analysis
 
-</button>
+                history.map((item)=>(
 
 
+                    <div
 
+                        className="history-card"
 
+                        key={item._id}
 
-<button
-onClick={()=>deleteHistory(item._id)}
->
+                    >
 
-🗑 Delete
 
-</button>
 
+                        <h2>
+                            📄 {item.resumeName || item.fileName}
+                        </h2>
 
 
 
 
-<h3>
-Analysis:
-</h3>
+                        <p>
 
+                            Date:
 
+                            {
+                                new Date(
+                                    item.createdAt
+                                ).toLocaleString()
+                            }
 
-<pre>
+                        </p>
 
-{item.analysis}
 
-</pre>
 
 
+                        <button
 
+                            onClick={() =>
+                                downloadAnalysis(item)
+                            }
 
-</div>
+                        >
 
+                            ⬇ Download Analysis
 
-))
+                        </button>
 
 
-}
 
 
 
-</div>
+                        <button
 
+                            onClick={() =>
+                                deleteHistory(item._id)
+                            }
 
-)
+                        >
+
+                            🗑 Delete
+
+                        </button>
+
+
+
+
+
+                        <h3>
+                            Analysis:
+                        </h3>
+
+
+
+
+                        <pre>
+
+                            {
+                                item.analysisResult || item.analysis
+                            }
+
+                        </pre>
+
+
+
+
+                    </div>
+
+
+                ))
+
+            }
+
+
+
+        </div>
+
+    );
 
 
 }
