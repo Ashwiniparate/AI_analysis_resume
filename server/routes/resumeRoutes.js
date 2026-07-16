@@ -9,67 +9,9 @@ const model = require("../config/gemini");
 const History = require("../models/History");
 
 
-
-// Multer configuration
-
 const upload = multer({
-
     storage: multer.memoryStorage()
-
 });
-
-
-
-
-
-// ===============================
-// Clean Gemini Response
-// ===============================
-
-
-function cleanAIResponse(text) {
-
-
-   function cleanAIResponse(text) {
-
-    return text
-        // Remove markdown symbols
-        .replace(/\*\*/g, "")
-        .replace(/\*/g, "")
-        .replace(/---/g, "")
-
-        // Remove "Here's an analysis..." line
-        .replace(/^Here's an analysis.*?:/i, "")
-
-        // Add spacing before sections
-        .replace(/Resume Score:/gi, "\n\nRESUME SCORE:\n")
-        .replace(/Technical Skills:/gi, "\n\nTECHNICAL SKILLS:\n")
-        .replace(/Missing Skills:/gi, "\n\nMISSING SKILLS:\n")
-        .replace(/Suitable Job Roles:/gi, "\n\nSUITABLE JOB ROLES:\n")
-        .replace(/Improvement Suggestions:/gi, "\n\nIMPROVEMENT SUGGESTIONS:\n")
-
-        // Convert bold section names
-        .replace(/Languages:/gi, "\n\nLanguages:\n")
-        .replace(/Frameworks\/Libraries:/gi, "\n\nFrameworks/Libraries:\n")
-        .replace(/Tools\/Concepts:/gi, "\n\nTools/Concepts:\n")
-        .replace(/Databases:/gi, "\n\nDatabases:\n")
-
-        // Convert bullet points
-        .replace(/^\s*[-•*]\s*/gm, "• ")
-
-        // Fix numbered lists spacing
-        .replace(/(\d+\.)/g, "\n$1")
-
-        // Remove multiple blank spaces
-        .replace(/\n\s*\n\s*\n+/g, "\n\n")
-
-        .trim();
-
-}
-
-}
-
-
 
 
 
@@ -77,22 +19,14 @@ function cleanAIResponse(text) {
 // Resume Analyze API
 // =================================
 
-
-router.post(
-    "/analyze",
-    upload.single("resume"),
-    async (req, res) => {
-
+router.post("/analyze", upload.single("resume"), async (req, res) => {
 
     try {
-
 
         const file = req.file;
 
 
-
         if (!file) {
-
 
             return res.status(400).json({
 
@@ -100,134 +34,107 @@ router.post(
 
             });
 
-
         }
 
 
 
-
-
-        // Extract text from PDF
-
+        // Extract PDF Text
 
         const parser = new PDFParse({
 
-            data:file.buffer
+            data: file.buffer
 
         });
 
 
-
         const pdfData = await parser.getText();
-
 
 
         const resumeText = pdfData.text;
 
 
 
+        if (!resumeText) {
+
+            return res.status(400).json({
+
+                message: "Unable to extract resume text"
+
+            });
+
+        }
 
 
 
 
         const prompt = `
 
+You are an expert resume reviewer.
 
-You are a professional Resume Analyzer.
+Analyze the resume and provide a clean professional report.
 
+Do NOT use markdown symbols like *, #, or ---.
 
-Analyze the given resume.
+Use this exact format:
 
+Resume Score:
+(Score out of 10)
 
-IMPORTANT RULES:
+Candidate Summary:
+(Short summary)
 
-- Return plain text only.
-- Do not use Markdown.
-- Do not use symbols like *, **, #.
-- Use simple headings.
-- Use bullet points using •.
-- Keep the format clean and professional.
+Technical Skills:
+(List skills)
 
+Missing Skills:
+(List missing skills)
 
+Suitable Job Roles:
+(List job roles)
 
-Use this format:
-
-
-
-RESUME SCORE:
-
-Give score out of 10 with explanation.
-
-
-
-TECHNICAL SKILLS:
-
-List technical skills.
-
-
-
-MISSING SKILLS:
-
-List skills that should be improved.
-
-
-
-SUITABLE JOB ROLES:
-
-List recommended roles.
-
-
-
-IMPROVEMENT SUGGESTIONS:
-
-Give numbered suggestions.
-
+Improvement Suggestions:
+(Numbered suggestions)
 
 
 Resume Content:
 
 ${resumeText}
 
-
-
 `;
 
 
 
 
-
-
-
-        // Gemini Generate
-
+        // Gemini AI
 
         const result = await model.generateContent(prompt);
 
 
 
-        let analysis = result.response.text();
+        const analysis = result.response.text();
 
 
 
-        // Clean AI response
+        if (!analysis) {
+
+            return res.status(500).json({
+
+                message: "AI did not return analysis"
+
+            });
+
+        }
 
 
-        analysis = cleanAIResponse(analysis);
 
 
-
-
-
-
-
-        // Save in MongoDB
-
+        // Save history only after successful AI response
 
         const savedHistory = new History({
 
-            resumeName:file.originalname,
+            resumeName: file.originalname,
 
-            analysisResult:analysis
+            analysisResult: analysis
 
         });
 
@@ -241,32 +148,55 @@ ${resumeText}
 
 
 
-
-
-
-
         res.status(200).json({
 
-            message:"Resume analyzed successfully",
+            message: "Resume analyzed successfully",
 
-            analysis:analysis,
+            analysis: analysis,
 
-            historyId:savedHistory._id
+            historyId: savedHistory._id
 
         });
 
 
 
-
-
-
     }
 
-    catch(error){
+    catch(error) {
+
+
+        console.log("Resume Error:", error);
 
 
 
-        console.log("Resume Error:",error);
+        // Gemini quota error
+
+        if(error.status === 429){
+
+            return res.status(429).json({
+
+                message:
+                "AI quota exceeded. Please try again later."
+
+            });
+
+        }
+
+
+
+        // Gemini server overload
+
+        if(error.status === 503){
+
+            return res.status(503).json({
+
+                message:
+                "AI service is busy. Please try again after some time."
+
+            });
+
+        }
+
 
 
 
@@ -279,14 +209,7 @@ ${resumeText}
 
     }
 
-
 });
-
-
-
-
-
-
 
 
 
@@ -297,25 +220,17 @@ ${resumeText}
 // =================================
 
 
-router.post(
-"/interview",
-async(req,res)=>{
+router.post("/interview", async(req,res)=>{
 
 
     try{
 
 
-        const {
-            jobRole,
-            skills
-        } = req.body;
-
-
+        const {jobRole,skills}=req.body;
 
 
 
         if(!jobRole || !skills){
-
 
             return res.status(400).json({
 
@@ -324,68 +239,36 @@ async(req,res)=>{
 
             });
 
-
         }
-
-
-
-
 
 
 
         const prompt = `
 
-
-You are a professional technical interviewer.
-
-
-Generate interview preparation.
-
-
+You are a professional interviewer.
 
 Job Role:
-
 ${jobRole}
 
 
-
 Candidate Skills:
-
 ${skills}
 
 
+Generate:
 
-IMPORTANT:
+1. HR Questions
 
-Return plain text only.
+2. Technical Questions
 
-Do not use *, **, #.
+3. Project Questions
 
-Use clean headings and bullet points.
+4. Coding Questions
 
-
-
-Format:
-
-
-
-HR QUESTIONS:
-
-TECHNICAL QUESTIONS:
-
-PROJECT QUESTIONS:
-
-CODING QUESTIONS:
-
-INTERVIEW TIPS:
-
+5. Interview Tips
 
 
 `;
-
-
-
-
 
 
 
@@ -393,17 +276,8 @@ INTERVIEW TIPS:
 
 
 
-        let response =
+        const response =
         result.response.text();
-
-
-
-
-        response = cleanAIResponse(response);
-
-
-
-
 
 
 
@@ -415,18 +289,25 @@ INTERVIEW TIPS:
 
 
 
-
-
-
-
     }
+
     catch(error){
 
 
-        console.log(
-            "Interview Error:",
-            error
-        );
+        console.log("Interview Error:",error);
+
+
+
+        if(error.status===429){
+
+            return res.status(429).json({
+
+                message:
+                "AI quota exceeded. Try again later."
+
+            });
+
+        }
 
 
 
@@ -442,7 +323,6 @@ INTERVIEW TIPS:
 
 
 });
-
 
 
 
