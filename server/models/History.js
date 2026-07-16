@@ -1,31 +1,22 @@
 const mongoose = require("mongoose");
 
-const historySchema = new mongoose.Schema(
-  {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
 
+const historySchema = new mongoose.Schema(
+{
     resumeName: {
-      type: String,
-      required: true,
+        type: String,
+        required: true
     },
 
     analysisResult: {
-      type: Object,
-      required: true,
-    },
+        type: String,
+        required: true
+    }
 
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-  { timestamps: true }
-);
+},
+{
+    timestamps: true
+});
 
-const History = mongoose.model("History", historySchema);
 
-module.exports = History;
+module.exports = mongoose.model("History", historySchema);

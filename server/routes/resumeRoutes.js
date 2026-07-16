@@ -3,114 +3,271 @@ const router = express.Router();
 
 const multer = require("multer");
 const { PDFParse } = require("pdf-parse");
-const fs = require("fs");
 
 const model = require("../config/gemini");
 
-const Resume = require("../models/Resume");
+const History = require("../models/History");
 
 
+
+// Multer configuration
 
 const upload = multer({
+
     storage: multer.memoryStorage()
+
 });
 
 
 
 
 
-router.post("/analyze", upload.single("resume"), async (req, res) => {
+// ===============================
+// Clean Gemini Response
+// ===============================
+
+
+function cleanAIResponse(text) {
+
+
+   function cleanAIResponse(text) {
+
+    return text
+        // Remove markdown symbols
+        .replace(/\*\*/g, "")
+        .replace(/\*/g, "")
+        .replace(/---/g, "")
+
+        // Remove "Here's an analysis..." line
+        .replace(/^Here's an analysis.*?:/i, "")
+
+        // Add spacing before sections
+        .replace(/Resume Score:/gi, "\n\nRESUME SCORE:\n")
+        .replace(/Technical Skills:/gi, "\n\nTECHNICAL SKILLS:\n")
+        .replace(/Missing Skills:/gi, "\n\nMISSING SKILLS:\n")
+        .replace(/Suitable Job Roles:/gi, "\n\nSUITABLE JOB ROLES:\n")
+        .replace(/Improvement Suggestions:/gi, "\n\nIMPROVEMENT SUGGESTIONS:\n")
+
+        // Convert bold section names
+        .replace(/Languages:/gi, "\n\nLanguages:\n")
+        .replace(/Frameworks\/Libraries:/gi, "\n\nFrameworks/Libraries:\n")
+        .replace(/Tools\/Concepts:/gi, "\n\nTools/Concepts:\n")
+        .replace(/Databases:/gi, "\n\nDatabases:\n")
+
+        // Convert bullet points
+        .replace(/^\s*[-•*]\s*/gm, "• ")
+
+        // Fix numbered lists spacing
+        .replace(/(\d+\.)/g, "\n$1")
+
+        // Remove multiple blank spaces
+        .replace(/\n\s*\n\s*\n+/g, "\n\n")
+
+        .trim();
+
+}
+
+}
+
+
+
+
+
+// =================================
+// Resume Analyze API
+// =================================
+
+
+router.post(
+    "/analyze",
+    upload.single("resume"),
+    async (req, res) => {
+
 
     try {
+
 
         const file = req.file;
 
 
+
         if (!file) {
 
+
             return res.status(400).json({
+
                 message: "No resume uploaded"
+
             });
+
 
         }
 
 
 
-        
+
+
+        // Extract text from PDF
+
 
         const parser = new PDFParse({
 
-            data: file.buffer
+            data:file.buffer
 
         });
 
 
+
         const pdfData = await parser.getText();
+
 
 
         const resumeText = pdfData.text;
 
 
 
+
+
+
+
         const prompt = `
 
-Analyze this resume.
 
-Give response in this format:
-
-Resume Score:
-Technical Skills:
-Missing Skills:
-Suitable Job Roles:
-Improvement Suggestions:
+You are a professional Resume Analyzer.
 
 
-Resume:
+Analyze the given resume.
+
+
+IMPORTANT RULES:
+
+- Return plain text only.
+- Do not use Markdown.
+- Do not use symbols like *, **, #.
+- Use simple headings.
+- Use bullet points using •.
+- Keep the format clean and professional.
+
+
+
+Use this format:
+
+
+
+RESUME SCORE:
+
+Give score out of 10 with explanation.
+
+
+
+TECHNICAL SKILLS:
+
+List technical skills.
+
+
+
+MISSING SKILLS:
+
+List skills that should be improved.
+
+
+
+SUITABLE JOB ROLES:
+
+List recommended roles.
+
+
+
+IMPROVEMENT SUGGESTIONS:
+
+Give numbered suggestions.
+
+
+
+Resume Content:
 
 ${resumeText}
+
+
 
 `;
 
 
 
+
+
+
+
+        // Gemini Generate
+
+
         const result = await model.generateContent(prompt);
 
 
-        const response = result.response.text();
+
+        let analysis = result.response.text();
 
 
 
-      
-
-        const savedResume = new Resume({
-
-            fileName: file.originalname,
-
-            analysis: response
-
-        });
+        // Clean AI response
 
 
-        await savedResume.save();
-        console.log("Saved Resume:", savedResume);
-
-
-        console.log("Resume history saved successfully");
+        analysis = cleanAIResponse(analysis);
 
 
 
-        res.json({
 
-            analysis: response
+
+
+
+        // Save in MongoDB
+
+
+        const savedHistory = new History({
+
+            resumeName:file.originalname,
+
+            analysisResult:analysis
 
         });
 
 
 
-    } catch(error) {
+        await savedHistory.save();
 
 
-        console.log("Resume Error:", error);
+
+        console.log("History saved successfully");
+
+
+
+
+
+
+
+        res.status(200).json({
+
+            message:"Resume analyzed successfully",
+
+            analysis:analysis,
+
+            historyId:savedHistory._id
+
+        });
+
+
+
+
+
+
+    }
+
+    catch(error){
+
+
+
+        console.log("Resume Error:",error);
+
 
 
         res.status(500).json({
@@ -122,6 +279,7 @@ ${resumeText}
 
     }
 
+
 });
 
 
@@ -131,67 +289,125 @@ ${resumeText}
 
 
 
-router.post("/interview", async(req,res)=>{
+
+
+
+// =================================
+// Interview Preparation API
+// =================================
+
+
+router.post(
+"/interview",
+async(req,res)=>{
 
 
     try{
 
 
-        const {jobRole, skills}=req.body;
+        const {
+            jobRole,
+            skills
+        } = req.body;
+
+
 
 
 
         if(!jobRole || !skills){
 
+
             return res.status(400).json({
 
-                message:"Job role and skills are required"
+                message:
+                "Job role and skills are required"
 
             });
+
 
         }
 
 
 
+
+
+
+
         const prompt = `
 
-You are a professional HR and Technical interviewer.
+
+You are a professional technical interviewer.
+
+
+Generate interview preparation.
+
 
 
 Job Role:
+
 ${jobRole}
 
 
+
 Candidate Skills:
+
 ${skills}
 
 
-Generate interview preparation:
+
+IMPORTANT:
+
+Return plain text only.
+
+Do not use *, **, #.
+
+Use clean headings and bullet points.
 
 
-1. HR Questions
 
-2. Technical Questions
+Format:
 
-3. Project Questions
 
-4. Coding Questions
 
-5. Interview Tips
+HR QUESTIONS:
+
+TECHNICAL QUESTIONS:
+
+PROJECT QUESTIONS:
+
+CODING QUESTIONS:
+
+INTERVIEW TIPS:
+
 
 
 `;
 
 
 
+
+
+
+
         const result = await model.generateContent(prompt);
 
 
-        const response = result.response.text();
+
+        let response =
+        result.response.text();
 
 
 
-        res.json({
+
+        response = cleanAIResponse(response);
+
+
+
+
+
+
+
+        res.status(200).json({
 
             interview:response
 
@@ -199,11 +415,19 @@ Generate interview preparation:
 
 
 
+
+
+
+
     }
     catch(error){
 
 
-        console.log("Interview Error:",error);
+        console.log(
+            "Interview Error:",
+            error
+        );
+
 
 
         res.status(500).json({
@@ -218,6 +442,8 @@ Generate interview preparation:
 
 
 });
+
+
 
 
 

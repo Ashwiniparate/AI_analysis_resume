@@ -2,87 +2,73 @@ const express = require("express");
 
 const router = express.Router();
 
-const Resume = require("../models/Resume");
+const History = require("../models/History");
 
 
 
+// GET ALL HISTORY
 
-router.post("/save", async (req, res) => {
-
-    try {
-
-        const resume = new Resume(req.body);
-
-        await resume.save();
+router.get("/", async(req,res)=>{
 
 
-        res.json({
-            message: "Resume saved successfully",
-            data: resume
+    try{
+
+
+        const history = await History.find()
+        .sort({
+            createdAt:-1
         });
 
 
-    } catch (error) {
 
-        res.status(500).json({
-            message: error.message
-        });
+        res.status(200).json(history);
+
+
 
     }
+    catch(error){
+
+
+        console.log(error);
+
+
+        res.status(500).json({
+
+            message:error.message
+
+        });
+
+
+    }
+
 
 });
 
 
 
 
+// DELETE HISTORY
+
+router.delete("/:id", async(req,res)=>{
 
 
-
-router.get("/", async (req, res) => {
-
-    try {
-
-        const history = await Resume.find()
-            .sort({ createdAt: -1 });
+    try{
 
 
-        res.json(history);
-
-
-    } catch(error) {
-
-        res.status(500).json({
-            message: error.message
-        });
-
-    }
-
-});
-
-
-
-
-
-
-
-router.delete("/:id", async (req, res) => {
-
-    try {
-
-
-        const deletedHistory = await Resume.findByIdAndDelete(
-            req.params.id
-        );
+        const deletedHistory =
+        await History.findByIdAndDelete(req.params.id);
 
 
 
         if(!deletedHistory){
+
 
             return res.status(404).json({
 
                 message:"History not found"
 
             });
+
 
         }
 
@@ -109,9 +95,8 @@ router.delete("/:id", async (req, res) => {
 
     }
 
+
 });
-
-
 
 
 
