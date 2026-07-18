@@ -5,6 +5,8 @@ require("dotenv").config();
 const connectDB = require("./config/db");
 
 const resumeRoutes = require("./routes/resumeRoutes");
+const aiRoutes = require("./routes/aiRoutes");   // ADD THIS
+
 
 const app = express();
 
@@ -33,8 +35,10 @@ app.get("/health",(req,res)=>{
 });
 
 
-// Resume Routes
+// Routes
 app.use("/api/resume", resumeRoutes);
+
+app.use("/api/ai", aiRoutes);   // ADD THIS
 
 
 
