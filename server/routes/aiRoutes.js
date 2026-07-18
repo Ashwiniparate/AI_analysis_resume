@@ -5,23 +5,20 @@ const model = require("../config/gemini");
 const Chat = require("../models/Chat");
 
 
-// Generate AI Response
-router.post("/generate", async (req, res) => {
+router.post("/generate", async(req,res)=>{
 
-    try {
+    try{
 
-        const { prompt } = req.body;
+        const {prompt}=req.body;
 
-
-        if (!prompt) {
+        if(!prompt){
             return res.status(400).json({
-                message: "Prompt is required"
+                message:"Prompt required"
             });
         }
 
 
         const result = await model.generateContent(prompt);
-
 
         const answer = result.response.text();
 
@@ -32,18 +29,18 @@ router.post("/generate", async (req, res) => {
         });
 
 
-        res.json({
+        res.status(200).json({
             answer: answer
         });
 
 
-    } catch (error) {
+    }
+    catch(error){
 
-        console.log("Gemini Error:", error.message);
-
+        console.log("Gemini Error:", error);
 
         res.status(500).json({
-            answer: "AI is busy. Try again."
+            message:error.message
         });
 
     }
@@ -52,22 +49,21 @@ router.post("/generate", async (req, res) => {
 
 
 
-// Get Chat History
-router.get("/history", async (req, res) => {
+router.get("/history", async(req,res)=>{
 
-    try {
+    try{
 
         const chats = await Chat.find()
-            .sort({ createdAt: -1 });
+        .sort({createdAt:-1});
 
 
         res.json(chats);
 
-
-    } catch (error) {
+    }
+    catch(error){
 
         res.status(500).json({
-            message: error.message
+            message:error.message
         });
 
     }
@@ -76,23 +72,21 @@ router.get("/history", async (req, res) => {
 
 
 
-// Delete Chat
-router.delete("/history/:id", async (req, res) => {
+router.delete("/history/:id", async(req,res)=>{
 
-    try {
+    try{
 
         await Chat.findByIdAndDelete(req.params.id);
 
-
         res.json({
-            message: "Chat deleted successfully"
+            message:"Chat deleted successfully"
         });
 
-
-    } catch (error) {
+    }
+    catch(error){
 
         res.status(500).json({
-            message: error.message
+            message:error.message
         });
 
     }
