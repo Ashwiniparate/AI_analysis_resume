@@ -1,14 +1,28 @@
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config();
+
+const connectDB = require("./config/db");
+
+const resumeRoutes = require("./routes/resume");
 
 const app = express();
 
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
 
+// MongoDB Connection
+connectDB();
+
+
+// Health check
 app.get("/", (req,res)=>{
-    res.send("AI Resume API Running");
+    res.json({
+        message:"AI Resume API Running"
+    });
 });
 
 
@@ -17,6 +31,11 @@ app.get("/health",(req,res)=>{
         status:"OK"
     });
 });
+
+
+// Resume Routes
+app.use("/api/resume", resumeRoutes);
+
 
 
 const PORT = process.env.PORT || 5000;
