@@ -107,11 +107,15 @@ ${resumeText}
 
         // Gemini AI
 
-        const result = await model.generateContent(prompt);
+       console.log("Sending request to Gemini...");
 
+const result = await model.generateContent(prompt);
 
+console.log("Gemini response received");
 
-        const analysis = result.response.text();
+const analysis = result.response.text();
+
+console.log("Analysis generated successfully");
 
 
 
