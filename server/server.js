@@ -4,7 +4,7 @@ require("dotenv").config();
 
 const connectDB = require("./config/db");
 
-const resumeRoutes = require("./routes/resume");
+const resumeRoutes = require("./routes/resumeRoutes");
 
 const app = express();
 
